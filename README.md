@@ -45,9 +45,9 @@ https://www.consul.io/docs/discovery/services
      - `just` installed: https://github.com/casey/just
      - `docker`
      - ssh access to remote machine
-     - `GITHUB_TOKEN` with `ghcr.io` write access
      - env vars defined in `.env` or in env (values are examples):
        - `GITHUB_TOKEN=xxxxxxxxxxxx`
+         - with `ghcr.io` write access
          - Host machine needs to push docker images
          - Remote machine needs to pull docker images
        - `TARGET_HOST=192.168.86.10`
