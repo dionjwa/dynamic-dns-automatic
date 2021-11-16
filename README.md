@@ -8,12 +8,14 @@ Register your service with consul and https routing and certificates are automat
 
 ### Add a new service
 
-1. Add/edit the DynamicDNS updater (if required):
+1. Host: add/edit the DynamicDNS updater (if required):
   - `dynamic-dns-updater/config.json`: https://github.com/qdm12/ddns-updater#configuration
-2. Start a service named as the domain with `.` replaced by `_`:  `my.domain.com` => `my_domain_com`:
+  - `just deploy` to update the host
+2. Remote: start a service named as the domain with `.` replaced by `_`:  `my.domain.com` => `my_domain_com`:
   - `docker run --rm -d --name my_domain_com -e PORT=3010 -p 3010:3010 ealen/echo-server`
   - `my_domain_com` will be rendered as `my.domain.com` in nginx
-3. Register the service (called "my_domain_com") with consul:
+  - This example is startin the service on the host, but the service can be anywhere as long as it is reachable
+3. Remote: register the service (called "my_domain_com") with consul:
   - `curl --request PUT --data '{"id":"my_domain_com","name":"my_domain_com","port":3010,"check":{"name":"HTTP API on port 3010","interval": "2s","http":"http://localhost:3010"}}' localhost:8500/v1/agent/service/register`
     - https://www.consul.io/docs/discovery/services
     - Make sure that `"interval": "2s"` is less than `consul-template/config/consul-template-config.hcl:` `min = "3s"`
@@ -24,6 +26,8 @@ Register your service with consul and https routing and certificates are automat
 
 ### Remove a service
 
+Remote:
+
 ```
   curl --request PUT localhost:8500/v1/agent/service/deregister/my_domain_com
 ```
@@ -32,7 +36,7 @@ https://www.consul.io/docs/discovery/services
 
 ### Installation
 
-1. Clone this repo
+1. Host: clone this repo
    - Optional (TODO: is this required?):
      - add keys certs: https://learn.hashicorp.com/tutorials/consul/deployment-guide
      - TODO: this could be justfiled
@@ -54,7 +58,7 @@ https://www.consul.io/docs/discovery/services
      - External DNS configuration pointing to this machine (optional only needed for dynamic DNS):
        1. Add/edit the DynamicDNS updater (if required):
        2. `dynamic-dns-updater/config.json`: https://github.com/qdm12/ddns-updater#configuration
-3. Intall:
+3. Host: install containers to remote
    - `just` (enters docker container with host mounted in)
    - `just deploy`: starts linked docker containers on host
 4. [Add a new service](#add-a-new-service)
