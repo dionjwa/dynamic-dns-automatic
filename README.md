@@ -10,6 +10,14 @@ Target: you have a single machine reverse proxying your services.
 
 ### Add a new service
 
+**Short version:** (you have everything else set up already)
+
+1. Remote: register the service (called "my_domain_com") with consul:
+  - `curl --request PUT --data '{"id":"my_domain_com","name":"my_domain_com","port":3010,"check":{"name":"HTTP API on port 3010","interval": "2s","http":"http://localhost:3010"}}' localhost:8500/v1/agent/service/register`
+2. That's it. Routing and certificates are handled automatically.
+
+**Long version:**
+
 1. Host: add/edit the DynamicDNS updater (if required):
   - `dynamic-dns-updater/config.json`: https://github.com/qdm12/ddns-updater#configuration
   - `just deploy` to update the host
