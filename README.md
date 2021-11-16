@@ -2,7 +2,7 @@
 
 Register your service with consul and https routing and certificates are automated.
 
-[Installation](installation) to a remote machine via a single command.
+[Installation](#installation) to a remote machine via a single command.
 
 ## Tasks
 
