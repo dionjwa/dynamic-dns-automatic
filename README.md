@@ -2,7 +2,7 @@
 
 Target: you have a single machine reverse proxying your services.
 
-[Register your service](#add-a-new-service) with consul and https routing and letsencrypt certificates are automated.
+[Register your service](#add-a-new-service) with consul => https routing and letsencrypt certificates are automated.
 
 [Installation](#installation) to a remote machine via a single command.
 
