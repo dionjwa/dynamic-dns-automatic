@@ -1,5 +1,7 @@
 # Automatic Dynamic DNS on a single machine
 
+Target: you have a single machine reverse proxying your services.
+
 Register your service with consul and https routing and certificates are automated.
 
 [Installation](#installation) to a remote machine via a single command.
