@@ -1,0 +1,18 @@
+version: "3.7"
+services:
+
+  consul:
+    build:
+      context: ./consul/config
+
+  consul-template:
+    build:
+      context: ./consul-template
+
+  dynamic-dns-updater:
+    build:
+      context: ./dynamic-dns-updater
+
+  nginx:
+    build:
+      context: ./nginx

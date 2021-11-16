@@ -1,0 +1,49 @@
+# Scripts for refreshing certificates and updating nginx efficiently
+set shell            := ["bash", "-c"]
+export CERTBOT_EMAIL := env_var("CERTBOT_EMAIL")
+
+# Temporarily disabled attempting to automatically jump into docker for the ci ops, since they
+# rely on building docker images, and mounting host directories is rife with permissions problems:
+# https://github.com/moby/moby/issues/2259#issuecomment-48284631
+@_help:
+    just --list --unsorted --list-heading $'💌 Certbot triggered from consul:\n'
+
+# Load the fresh list of domains from consul, and update certs and config and reload nginx
+check-and-refresh:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # First restart nginx to update the certbot config
+    echo "Restarting nginx with the certbot config"
+    just nginx-reload
+
+    # Load the fresh list of domains from consul, and create certs if not already present
+    # For automatic refreshing, use 'just refresh' instead of 'just check-and-refresh'
+    for i in $(cat /etc/nginx/conf.d/load-balancer.certbot.conf | rg server_name | sd 'server_name (.*);\n' '$1'); do
+        # Does the certificate already exist? If not, we MUST generate it now
+        if [ ! -f /etc/nginx/ssl/live/$i/fullchain.pem ]; then
+            echo "Certificate does NOT exist: $i"
+            just get-certificates $i
+        fi
+    done
+
+    # Now we have validated that the certificates are at least present, we can reload nginx
+    # But first we copy the new config to the nginx volume
+    cp /etc/consul-template/load-balancer.https.conf /etc/nginx/conf.d/
+
+    # Now restart nginx with all certifactes and updated routing from consul
+    just nginx-reload
+
+# certbot certonly --webroot --webroot-path /var/www/certbot/ --non-interactive --agree-tos --email dion@metapage.io -d $i
+get-certificates domain:
+    docker run --rm \
+        -v certbot-www:/var/www/certbot/:rw \
+        -v certbot-conf:/etc/letsencrypt/:rw \
+        certbot/certbot:latest certonly \
+            --webroot \
+            --webroot-path /var/www/certbot/ \
+            --non-interactive --agree-tos --email ${CERTBOT_EMAIL} -d {{domain}}
+
+# Reload the nginx docker container
+nginx-reload:
+    docker exec dynamic-dns-nginx /usr/sbin/nginx -s reload

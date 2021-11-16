@@ -1,0 +1,25 @@
+{{range services}} {{$name := .Name}} {{$service := service .Name}}
+{{-  if  .Name | contains "consul" | not }}
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name {{$name | replaceAll "_" "."}};
+    server_tokens off;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location /healthcheck {
+        add_header Content-Type text/plain;
+        return 200 '{{$name | replaceAll "_" "."}} is A-OK!';
+    }
+
+    location / {
+      # redirect to https
+      return 301 https://{{$name | replaceAll "_" "."}}$request_uri;
+    }
+}
+{{- end -}}
+{{end}}

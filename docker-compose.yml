@@ -1,0 +1,67 @@
+# Simple consul server + client for a single instance
+version: "3.7"
+services:
+
+  # There is no need for a client if services are all on the same server: https://github.com/hashicorp/consul/issues/7657
+  # services register with consul, triggering an update to nginx
+  consul:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul:${DOCKER_TAG:-cache}
+    container_name: dynamic-dns-consul-server
+    restart: always
+    volumes:
+      - consul-server:/opt/consul
+    network_mode: host
+    command: "agent -config-dir /etc/consul.d/server -bootstrap-expect=1 -bind=127.0.0.1"
+
+  # update nginx config from consul
+  consul-template:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul-template:${DOCKER_TAG:-cache}
+    container_name: dynamic-dns-consul-template
+    restart: always
+    environment:
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+    volumes:
+      # Docker daemon mounted to exec into nginx container
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nginx:/etc/nginx/conf.d
+      - certbot-conf:/etc/nginx/ssl:ro
+    network_mode: host
+    command: "consul-template -log-level debug -config=/etc/consul-template/config/consul-template-config.hcl"
+
+  nginx:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-nginx:${DOCKER_TAG:-cache}
+    container_name: dynamic-dns-nginx
+    restart: always
+    network_mode: host
+    volumes:
+      - nginx:/etc/nginx/conf.d
+      - certbot-www:/var/www/certbot/:ro
+      - certbot-conf:/etc/nginx/ssl/:ro
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: dynamic-dns-certbot
+    environment:
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+    volumes:
+      - certbot-www:/var/www/certbot/:rw
+      - certbot-conf:/etc/letsencrypt/:rw
+
+  # https://hub.docker.com/r/qmcgaw/ddns-updater
+  # Updates cloud DNS entries to point to the public IP of the host
+  dynamic-dns-updater:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-updater:${DOCKER_TAG:-cache}
+    container_name: dynamic-dns-updater
+    restart: always
+    # This is not ideal, running as root, but nothing else worked: https://github.com/qdm12/ddns-updater/issues/239
+    user: "0"
+
+volumes:
+  consul-server:
+  nginx:
+  certbot-www:
+    external:
+      name: certbot-www
+  certbot-conf:
+    external:
+      name: certbot-conf
