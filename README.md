@@ -55,8 +55,9 @@ https://www.consul.io/docs/discovery/services
        1. Add/edit the DynamicDNS updater (if required):
        2. `dynamic-dns-updater/config.json`: https://github.com/qdm12/ddns-updater#configuration
 3. Intall:
-   - `just`
-   - TODO
+   - `just` (enters docker container with host mounted in)
+   - `just deploy`: starts linked docker containers on host
+4. [Add a new service](#add-a-new-service)
 
 
 ### Architecture
