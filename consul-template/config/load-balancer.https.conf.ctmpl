@@ -41,6 +41,31 @@ server {
     ssl_prefer_server_ciphers on;
     ## END: Security best practices
 
+    ## Start: Sensible defaults
+    # without this, browser requests to e.g. _logout start a download
+    default_type text/plain;
+    # enable gzip
+    gzip on;
+    gzip_disable "msie6";
+    gzip_comp_level 6;
+    gzip_min_length 1100;
+    gzip_buffers 16 8k;
+    gzip_proxied any;
+    gzip_types
+        text/plain
+        text/css
+        text/js
+        text/xml
+        text/javascript
+        application/javascript
+        application/x-javascript
+        application/json
+        application/xml
+        application/rss+xml
+        image/svg+xml;
+    ## END: Sensible defaults
+
+
 
     ssl_certificate /etc/nginx/ssl/live/{{index .ServiceMeta "domain"}}/fullchain.pem;
     ssl_certificate_key /etc/nginx/ssl/live/{{index .ServiceMeta "domain"}}/privkey.pem;
