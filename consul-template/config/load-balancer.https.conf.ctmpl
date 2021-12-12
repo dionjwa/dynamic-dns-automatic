@@ -1,4 +1,14 @@
-{{range services}} {{$name := .Name}} {{$service := service .Name}}
+# All services:
+{{ range services }} {{ range service .Name }} {{$name := .Name}}
+# upstream {{$name}}
+{{- if in .Tags "nginx-route" -}}
+#    ✅ nginx-route
+{{- end -}}
+{{end}}
+{{end}}
+
+
+{{ range services }} {{$name := .Name}} {{$service := service .Name}}
 {{- if in .Tags "nginx-route" -}}
 upstream {{$name}} {
    zone upstream-{{$name}} 64k;
@@ -6,6 +16,7 @@ upstream {{$name}} {
 }
 {{- end -}}
 {{end}}
+
 {{ range services }} {{ range service .Name }} {{$name := .Name}} {{$service := .Name}}
 {{- if in .Tags "nginx-route" -}}
 server {
@@ -13,8 +24,8 @@ server {
     listen [::]:443 ssl http2; # IPv6 support
     server_name {{index .ServiceMeta "domain"}};
 
-    ssl_certificate /etc/nginx/ssl/live/{{$name | replaceAll "_" "."}}/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/live/{{$name | replaceAll "_" "."}}/privkey.pem;
+    ssl_certificate /etc/nginx/ssl/live/{{index .ServiceMeta "domain"}}/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/live/{{index .ServiceMeta "domain"}}/privkey.pem;
 
     # Handle websockets
     location /{{index .ServiceMeta "path"}} {

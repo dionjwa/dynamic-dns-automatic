@@ -1,10 +1,11 @@
-{{range services}} {{$name := .Name}} {{$service := service .Name}}
-{{-  if  .Name | contains "consul" | not }}
+
+{{ range services }} {{ range service .Name }}
+{{- if in .Tags "nginx-route" -}}
 server {
     listen 80;
     listen [::]:80;
 
-    server_name {{$name | replaceAll "_" "."}};
+    server_name {{index .ServiceMeta "domain"}};
     server_tokens off;
 
     location /.well-known/acme-challenge/ {
@@ -13,13 +14,14 @@ server {
 
     location /healthcheck {
         add_header Content-Type text/plain;
-        return 200 '{{$name | replaceAll "_" "."}} is A-OK!';
+        return 200 '{{index .ServiceMeta "domain"}} is A-OK!';
     }
 
     location / {
       # redirect to https
-      return 301 https://{{$name | replaceAll "_" "."}}$request_uri;
+      return 301 https://{{index .ServiceMeta "domain"}}$request_uri;
     }
 }
 {{- end -}}
+{{end}}
 {{end}}
