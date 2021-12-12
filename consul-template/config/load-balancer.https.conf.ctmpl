@@ -24,6 +24,24 @@ server {
     listen [::]:443 ssl http2; # IPv6 support
     server_name {{index .ServiceMeta "domain"}};
 
+    ## Start: Size Limits & Buffer Overflows ##
+    client_body_buffer_size  1K;
+    client_header_buffer_size 1k;
+    large_client_header_buffers 2 4k;
+    # But exception to us because we need to accept large payloads (currently)
+    # This should be configurable, but needs work:
+    # https://github.com/dionjwa/dynamic-dns-automatic/issues/2
+    client_max_body_size 100M;
+    client_body_timeout 10m;
+    ## END: Size Limits & Buffer Overflows ##
+
+    ## Start: Security best practices https://www.acunetix.com/blog/web-security-zone/hardening-nginx/
+    server_tokens off; # disable the Server nginx header
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ## END: Security best practices
+
+
     ssl_certificate /etc/nginx/ssl/live/{{index .ServiceMeta "domain"}}/fullchain.pem;
     ssl_certificate_key /etc/nginx/ssl/live/{{index .ServiceMeta "domain"}}/privkey.pem;
 
@@ -46,6 +64,9 @@ server {
         # proxy_send_timeout 3600;
     }
     location @{{index .ServiceMeta "path"}} {
+        # TODO: limit all except needed
+        # https://www.acunetix.com/blog/web-security-zone/hardening-nginx/
+        # limit_except GET HEAD POST { deny all; }
         proxy_set_header Host $host;
         proxy_pass http://{{$name}};
     }
