@@ -8,6 +8,7 @@ GITHUB_TOKEN                       := env_var_or_default("GITHUB_TOKEN", "")
 export DOCKER_REGISTRY             := env_var_or_default("DOCKER_REGISTRY", "ghcr.io/")
 export DOCKER_IMAGE_PREFIX         := env_var_or_default("DOCKER_IMAGE_PREFIX", `(which deno >/dev/null && which git >/dev/null && deno run --unstable --allow-all https://deno.land/x/cloudseed@v0.0.18/cloudseed/docker_image_prefix.ts) || echo ''`)
 export DOCKER_TAG                  := env_var_or_default("DOCKER_TAG", `(which deno >/dev/null && deno run --unstable --allow-all https://deno.land/x/cloudseed@v0.0.18/git/getGitSha.ts --short=8) || echo cache`)
+export DOCKER_BUILDKIT             := env_var_or_default("DOCKER_BUILDKIT", "1")
 bold     := '\033[1m'
 normal   := '\033[0m'
 
@@ -19,7 +20,7 @@ _help:
     #!/usr/bin/env bash
     if [ -f /.dockerenv ]; then
         echo ""
-        just --list --unsorted --list-heading $'🏡 Set up a local machine to serve multiple services/domains:\n'
+        just --list --unsorted --list-heading $'🏡 Set up a remote instance to serve multiple services/domains via consul+nginx:\n'
         echo ""
     else
         # Get into the docker container, and in this directory
@@ -31,11 +32,9 @@ console:
     open http://{{TARGET_HOST}}:8500/ui/local/services
 
 # Deploy consul docker-compose stack to TARGET_HOST. Also requires CERTBOT_EMAIL TARGET_USER GITHUB_TOKEN
-deploy: _docker_registry_authenticate
-    docker-compose -f docker-compose.yml -f docker-compose.build.yml build
-    docker-compose -f docker-compose.yml -f docker-compose.build.yml push
+deploy: _docker_registry_authenticate _build_and_push
     docker-compose config > docker-compose.remote.yml
-    ssh {{TARGET_USER}}@{{TARGET_HOST}} 'mkdir -p deployments/consul'
+    ssh -o 'StrictHostKeyChecking accept-new' {{TARGET_USER}}@{{TARGET_HOST}} 'mkdir -p deployments/consul'
     scp docker-compose.remote.yml {{TARGET_USER}}@{{TARGET_HOST}}:deployments/consul/docker-compose.yml
     rm docker-compose.remote.yml
     ssh -o ConnectTimeout=10 {{TARGET_USER}}@{{TARGET_HOST}} 'echo {{GITHUB_TOKEN}} | docker login ghcr.io -u USERNAME --password-stdin'
@@ -47,6 +46,36 @@ deploy: _docker_registry_authenticate
     @# Start up the stack
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose pull && docker-compose up --remove-orphans -d'
 
+_build_and_push:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just consul/setup
+    # buildx uses different a different command structure ugh
+    if [ "${DOCKER_BUILDKIT}" = "1" ]; then
+        echo -e " 🏗️ buildkit enabled!"
+        # Guide: https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408
+        # buildkit is required for multi-architecture builds
+        # buildkit ignores custom docker-compose.yml set in DOCKER_COMPOSE_ARGS, the compose yaml parsing is not the same
+        # as non-buildkit builds and errors abound
+        # buildx pushes to the buildkit registry to requires authentication
+        # I saw this 👇 here 👉 https://github.com/marthoc/docker-deconz/blob/master/.travis.yml and https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408
+        # echo -e " 🏗️ docker run --rm --privileged --platform linux/arm64/v8 multiarch/qemu-user-static --reset -p yes"
+        # docker run --rm --privileged --platform linux/arm64/v8 multiarch/qemu-user-static --reset -p yes
+        if [ "$(docker buildx ls | grep mybuilder)" = "" ]; then
+            echo -e " 🏗️ buildkit builder does not exist, creating"
+            docker buildx create --name mybuilder
+        else
+            echo -e " 🏗️ buildkit builder already exists"
+        fi
+        docker buildx use mybuilder
+        COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker buildx bake --push --set '*.platform=linux/arm64,linux/amd64' -f docker-compose.yml -f docker-compose.build.yml
+        docker buildx use default
+    else
+        echo -e "🚪 {{bold}}DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml build {{normal}} 🚪 ";
+        DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml build;
+        DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml push;
+    fi
+
 _docker_registry_authenticate:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -54,15 +83,22 @@ _docker_registry_authenticate:
         echo "🚪 🔥🔥🔥 Required but missing: GITHUB_TOKEN. Set in .env or via the provider docker context 🚪 ";
         exit 1;
     fi
-    echo -e "🚪 <ci/> {{bold}}echo GITHUB_TOKEN | docker login --username USERNAME --password-stdin ghcr.io{{normal}} 🚪"
-    echo $GITHUB_TOKEN | docker login -u USERNAME --password-stdin ghcr.io
+    if [ -f ~/.docker/config.json ] && [ "$(cat ~/.docker/config.json | jq -r --arg DOCKER_REGISTRY $(echo $DOCKER_REGISTRY | sd '/' '') '.auths[$DOCKER_REGISTRY]')" != "null" ]; then
+        echo "🤖 👍 docker registry is already authenticated";
+    else
+        echo $GITHUB_TOKEN | docker login -u USERNAME --password-stdin ghcr.io;
+        echo "🤖 ✅ docker registry authenticated";
+    fi
+
+# echo -e "🚪 <ci/> {{bold}}echo GITHUB_TOKEN | docker login --username USERNAME --password-stdin ghcr.io{{normal}} 🚪"
+
 
 # Build and run the ci/cloud image, used for building, publishing, and deployments
 _docker dir="": _docker_build
     echo -e "🚪🚪 Entering docker context: {{bold}}{{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} from <cloud/>Dockerfile 🚪🚪{{normal}}"
     mkdir -p {{ROOT}}/.tmp
     touch {{ROOT}}/.tmp/.bash_history
-    export WORKSPACE=/repo && \
+    export WORKSPACE={{ROOT}} && \
         docker run \
             --rm \
             -ti \
@@ -75,14 +111,14 @@ _docker dir="": _docker_build
             -v {{ROOT}}:$WORKSPACE \
             -v $HOME/.ssh:/root/.ssh \
             -v /var/run/docker.sock:/var/run/docker.sock \
-            -w $WORKSPACE/{{dir}} \
+            -w $WORKSPACE \
             {{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} bash || true
 
 # If the ./app docker image in not build, then build it
 @_docker_build:
     echo -e "🚪🚪  ➡ {{bold}}Building ./cloud docker image ...{{normal}} 🚪🚪 "
-    echo -e "🚪 </> {{bold}} docker build -f {{ROOT}}/Dockerfile -t {{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} . {{normal}}🚪 "
-    docker build -f {{ROOT}}/Dockerfile -t {{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} .
+    echo -e "🚪 </> {{bold}} docker build --load -t {{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} . {{normal}}🚪 "
+    docker build --load -t {{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} .
 
 _docker_ensure_inside:
     #!/usr/bin/env bash

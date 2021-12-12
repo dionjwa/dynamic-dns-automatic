@@ -14,6 +14,9 @@ consul {
 template {
   source      = "/etc/consul-template/config/load-balancer.https.conf.ctmpl"
   // This spot is temporary until we validate we have the certs
+  // In other words, the nginx config will be rendered but not copied
+  // until certs are available, then the "just check-and-refresh" below
+  // will copy it into place
   destination = "/etc/consul-template/load-balancer.https.conf"
 }
 // This template can immediately be copied into the nginx directory

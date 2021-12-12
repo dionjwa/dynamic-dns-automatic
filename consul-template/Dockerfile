@@ -34,7 +34,7 @@ RUN echo -e '#!/bin/bash\njust "$@"' > /usr/bin/j && \
 
 # Required to communicate with consul
 COPY config /etc/consul-template/config
-COPY certs /etc/consul.d/client/certs
+# COPY certs /etc/consul.d/client/certs
 
 # command: "consul-template -config=/etc/consul-template/config/consul-template-config.hcl"
 # 2021/11/15 20:32:26 [ERR] (cli) missing file/folder: /etc/consul-template/consul-template-config.hcl: stat /etc/consul-template/consul-template-config.hcl: no such file or directory

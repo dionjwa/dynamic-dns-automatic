@@ -2,17 +2,21 @@ version: "3.7"
 services:
 
   consul:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul:${DOCKER_TAG:-cache}
     build:
-      context: ./consul/config
+      context: ./consul/config/server
 
   consul-template:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul-template:${DOCKER_TAG:-cache}
     build:
       context: ./consul-template
 
   dynamic-dns-updater:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-updater:${DOCKER_TAG:-cache}
     build:
       context: ./dynamic-dns-updater
 
   nginx:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-nginx:${DOCKER_TAG:-cache}
     build:
       context: ./nginx

@@ -1,0 +1,27 @@
+set shell       := ["bash", "-c"]
+set dotenv-load := true
+
+@_help:
+    just --list --unsorted --list-heading $'🌩️  dynamic-dns-automatic consul setup: \n\n'
+    echo -e "\n"
+    echo -e "    https://learn.hashicorp.com/tutorials/consul/deployment-guide#prepare-the-security-credentials"
+    echo -e "\n"
+
+# Idempotent setup. Creates keys, config. Will not overwrite existing.
+setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f config/server/consul.hcl ]; then
+        export CONSUL_ENCRYPTION_KEY=$(docker run --rm -it hashicorp/consul:1.10.4 consul keygen | sd '\n' '' | sd '\r' '')
+        envsubst '$CONSUL_ENCRYPTION_KEY' < config/server/consul.template.hcl > config/server/consul.hcl
+    fi
+    if [ ! -d config/server/certs ]; then
+        docker run --rm -it -w /etc/consul.d/server/certs -v $(pwd)/config/server/certs:/etc/consul.d/server/certs hashicorp/consul:1.10.4 consul tls ca create
+        docker run --rm -it -w /etc/consul.d/server/certs -v $(pwd)/config/server/certs:/etc/consul.d/server/certs hashicorp/consul:1.10.4 consul tls cert create -server -dc local -domain consul
+    fi
+
+
+# Delete existing consul config and keys
+clean:
+    rm -rf config/server/consul.hcl
+    rm -rf config/server/certs

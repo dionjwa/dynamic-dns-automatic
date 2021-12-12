@@ -1,25 +1,44 @@
 {{range services}} {{$name := .Name}} {{$service := service .Name}}
-    {{-  if  .Name | contains "consul" | not }}
+{{- if in .Tags "nginx-route" -}}
 upstream {{$name}} {
    zone upstream-{{$name}} 64k;
    {{range $service}}server {{.Address}}:{{.Port}} max_fails=3 fail_timeout=60 weight=1;{{else}}server 127.0.0.1:65535; # force a 502{{end}}
 }
-    {{- end -}}
+{{- end -}}
 {{end}}
-
-{{range services}} {{$name := .Name}} {{$service := service .Name}}
-{{-  if  .Name | contains "consul" | not }}
+{{ range services }} {{ range service .Name }} {{$name := .Name}} {{$service := .Name}}
+{{- if in .Tags "nginx-route" -}}
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2; # IPv6 support
-    server_name {{$name | replaceAll "_" "."}};
+    server_name {{index .ServiceMeta "domain"}};
 
     ssl_certificate /etc/nginx/ssl/live/{{$name | replaceAll "_" "."}}/fullchain.pem;
     ssl_certificate_key /etc/nginx/ssl/live/{{$name | replaceAll "_" "."}}/privkey.pem;
 
-    location / {
-    	proxy_pass http://{{$name}};
+    # Handle websockets
+    location /{{index .ServiceMeta "path"}} {
+        try_files /nonexistent @{{index .ServiceMeta "path"}}$http_upgrade;
+    }
+    location @{{index .ServiceMeta "path"}}websocket {
+        proxy_pass http://{{$name}};
+
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        # Set 60-minute timeout between reads and writs
+        # proxy_read_timeout 3600;
+        # proxy_send_timeout 3600;
+    }
+    location @{{index .ServiceMeta "path"}} {
+        proxy_set_header Host $host;
+        proxy_pass http://{{$name}};
     }
 }
 {{- end -}}
+{{end}}
 {{end}}

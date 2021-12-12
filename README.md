@@ -36,13 +36,33 @@ Use case: you have a single machine reverse proxying your services.
   - `docker run --rm -d --name my_domain_com -e PORT=3010 -p 3010:3010 ealen/echo-server`
   - `my_domain_com` will be rendered as `my.domain.com` in nginx
   - This example is startin the service on the host, but the service can be anywhere as long as it is reachable
-3. Remote: register the service (called "my_domain_com") with consul:
+3. Remote: register the service (called "my_domain_com") with consul.
+  - Note the `path` and `domain` meta fields, and `"nginx-route"` tag, you need those to set routing rules:
+    ```
+    {
+    "id": "my_domain_com",
+    "tags": [
+        "nginx-route"
+    ],
+    "name": "my_domain_com",
+    "port": 3010,
+    "check": {
+        "name": "HTTP API on port 3010",
+        "interval": "2s",
+        "http": "http://localhost:3010"
+    },
+    "meta": {
+        "path": "api/v1",
+        "domain": "my.domain.com"
+    }
+}
+    ```
   - `curl --request PUT --data '{"id":"my_domain_com","name":"my_domain_com","port":3010,"check":{"name":"HTTP API on port 3010","interval": "2s","http":"http://localhost:3010"}}' localhost:8500/v1/agent/service/register`
     - https://www.consul.io/docs/discovery/services
     - Make sure that `"interval": "2s"` is less than `consul-template/config/consul-template-config.hcl:` `min = "3s"`
       - consul doesn't seem to get the timing right on rendering, the service must be registered as healthy *before* the templating process starts. This is not how consul is advertised to work (re-renders on any updates) and is possibly due to timing of the template render.
   - `consul` triggers an update to `consul-template` that updates `nginx`
-4. Check URL, should work (URL is user controlled)
+1. Check URL, should work (URL is user controlled)
   - `curl https://my.domain.com` (or whatever you register)
 
 ### Remove a service
