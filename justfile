@@ -1,5 +1,6 @@
 # Set up a reverse proxy to route external requests to local applications
-set shell := ["bash", "-c"]
+set shell       := ["bash", "-c"]
+set dotenv-load := true
 export ROOT                        := `git rev-parse --show-toplevel`
 export TARGET_HOST                 := env_var_or_default("TARGET_HOST", "localhost")
 export TARGET_USER                 := env_var_or_default("TARGET_USER", "")
