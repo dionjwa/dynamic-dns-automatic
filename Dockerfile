@@ -15,12 +15,12 @@ RUN apk --no-cache --update add \
 RUN apk add sd --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
 
 # justfile for running commands, you will mostly interact with just https://github.com/casey/just
-RUN VERSION=0.9.1 ; \
-    SHA256SUM=054d2e02804b635da051d33cb120d76963fc1dc027b21a2f618bf579632b9c94 ; \
-    curl -L -O https://github.com/casey/just/releases/download/v$VERSION/just-v$VERSION-x86_64-unknown-linux-musl.tar.gz && \
-    (echo "$SHA256SUM  just-v$VERSION-x86_64-unknown-linux-musl.tar.gz" | sha256sum  -c -) && \
-    mkdir -p /tmp/just && mv just-v$VERSION-x86_64-unknown-linux-musl.tar.gz /tmp/just && cd /tmp/just && \
-    tar -xzf just-v$VERSION-x86_64-unknown-linux-musl.tar.gz && \
+RUN VERSION=0.10.4 ; \
+    SHA256SUM=4d1f3e3bef97edeee26f1a3760ac404dcb3a1f52930405c8bd3cd3e5b70545d8 ; \
+    curl -L -O https://github.com/casey/just/releases/download/$VERSION/just-$VERSION-x86_64-unknown-linux-musl.tar.gz && \
+    (echo "$SHA256SUM  just-$VERSION-x86_64-unknown-linux-musl.tar.gz" | sha256sum  -c) && \
+    mkdir -p /tmp/just && mv just-$VERSION-x86_64-unknown-linux-musl.tar.gz /tmp/just && cd /tmp/just && \
+    tar -xzf just-$VERSION-x86_64-unknown-linux-musl.tar.gz && \
     mkdir -p /usr/local/bin && mv /tmp/just/just /usr/local/bin/ && rm -rf /tmp/just
 # just tweak: unify the just binary location on host and container platforms because otherwise the shebang doesn't work properly due to no string token parsing (it gets one giant string)
 ENV PATH $PATH:/usr/local/bin

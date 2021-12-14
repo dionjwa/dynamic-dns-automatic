@@ -32,11 +32,7 @@ console:
     open http://{{TARGET_HOST}}:8500/ui/local/services
 
 # Deploy consul docker-compose stack to TARGET_HOST. Also requires CERTBOT_EMAIL TARGET_USER GITHUB_TOKEN
-deploy: _docker_registry_authenticate _build_and_push
-    docker-compose config > docker-compose.remote.yml
-    ssh -o 'StrictHostKeyChecking accept-new' {{TARGET_USER}}@{{TARGET_HOST}} 'mkdir -p deployments/consul'
-    scp docker-compose.remote.yml {{TARGET_USER}}@{{TARGET_HOST}}:deployments/consul/docker-compose.yml
-    rm docker-compose.remote.yml
+deploy: _docker_registry_authenticate _build_and_push _upload_to_remote_compose_config && _delete_local_remote_compose_config
     ssh -o ConnectTimeout=10 {{TARGET_USER}}@{{TARGET_HOST}} 'echo {{GITHUB_TOKEN}} | docker login ghcr.io -u USERNAME --password-stdin'
     @# Workaround for https://github.com/qdm12/ddns-updater/issues/239
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && mkdir -p dynamic-dns-updater/data && sudo chown -R 1000 dynamic-dns-updater/data && chmod 700 dynamic-dns-updater/data && touch dynamic-dns-updater/data/config.json && chmod 400 dynamic-dns-updater/data/config.json'
@@ -45,6 +41,22 @@ deploy: _docker_registry_authenticate _build_and_push
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'if [ "$(docker volume inspect certbot-conf  2>/dev/null)" = "[]" ]; then docker volume create certbot-conf; fi'
     @# Start up the stack
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose pull && docker-compose up --remove-orphans -d'
+
+_upload_to_remote_compose_config:
+    docker-compose config > docker-compose.remote.yml
+    ssh -o 'StrictHostKeyChecking accept-new' {{TARGET_USER}}@{{TARGET_HOST}} 'mkdir -p deployments/consul'
+    scp docker-compose.remote.yml {{TARGET_USER}}@{{TARGET_HOST}}:deployments/consul/docker-compose.yml
+
+@_delete_from_remote_compose_config:
+    echo "Currently NOT deleting remove compose config, probably should tho, just need to validate"
+
+@_delete_local_remote_compose_config:
+    rm -rf docker-compose.remote.yml
+
+delete: _upload_to_remote_compose_config && _delete_local_remote_compose_config
+    @# Bring down the stack
+    ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose down'
+
 
 _build_and_push:
     #!/usr/bin/env bash
