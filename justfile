@@ -2,6 +2,7 @@
 set shell       := ["bash", "-c"]
 set dotenv-load := true
 export ROOT                        := `git rev-parse --show-toplevel`
+# Main config for the target host
 export TARGET_HOST                 := env_var_or_default("TARGET_HOST", "localhost")
 export TARGET_USER                 := env_var_or_default("TARGET_USER", "")
 GITHUB_TOKEN                       := env_var_or_default("GITHUB_TOKEN", "")
@@ -10,8 +11,14 @@ export DOCKER_REGISTRY             := env_var_or_default("DOCKER_REGISTRY", "ghc
 export DOCKER_IMAGE_PREFIX         := env_var_or_default("DOCKER_IMAGE_PREFIX", `(which deno >/dev/null && which git >/dev/null && deno run --unstable --allow-all https://deno.land/x/cloudseed@v0.0.18/cloudseed/docker_image_prefix.ts) || echo ''`)
 export DOCKER_TAG                  := env_var_or_default("DOCKER_TAG", `(which deno >/dev/null && deno run --unstable --allow-all https://deno.land/x/cloudseed@v0.0.18/git/getGitSha.ts --short=8) || echo cache`)
 export DOCKER_BUILDKIT             := env_var_or_default("DOCKER_BUILDKIT", "1")
-bold     := '\033[1m'
-normal   := '\033[0m'
+# minimal formatting, bold is very useful
+bold                               := '\033[1m'
+normal                             := '\033[0m'
+green                              := "\\e[32m"
+yellow                             := "\\e[33m"
+blue                               := "\\e[34m"
+magenta                            := "\\e[35m"
+grey                               := "\\e[90m"
 
 # Automatically mount the local file system in a docker container with all
 # required tools. Sometimes there can be issues (but so far it's workable):
@@ -21,14 +28,17 @@ _help:
     #!/usr/bin/env bash
     if [ -f /.dockerenv ]; then
         echo ""
-        just --list --unsorted --list-heading $'🏡 Set up a remote instance to serve multiple services/domains via consul+nginx:\n'
+        just --list --unsorted --list-heading $'🏡 Commands: (set up a remote instance to serve multiple services/domains via consul+nginx):\n'
+        echo ""
+        echo -e "   Current [deploy|delete|console] target (from .env and env vars):"
+        echo -e "   {{green}}{{TARGET_USER}}{{normal}}@{{green}}{{TARGET_HOST}}{{normal}}"
         echo ""
     else
         # Get into the docker container, and in this directory
         just {{ROOT}}/_docker "$(echo $PWD/ | sd ${ROOT}/ '')";
     fi
 
-# Open the consul UI in a browser, must be on the same internal network as the server
+# Open the TARGET_HOST consul UI in a browser, must be on the same internal network as the server
 console:
     open http://{{TARGET_HOST}}:8500/ui/local/services
 
@@ -54,10 +64,10 @@ _upload_to_remote_compose_config:
 @_delete_local_remote_compose_config:
     rm -rf docker-compose.remote.yml
 
+# Delete the consul docker-compose stack from TARGET_HOST
 delete: _upload_to_remote_compose_config && _delete_local_remote_compose_config
     @# Bring down the stack
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose down'
-
 
 _build_and_push:
     #!/usr/bin/env bash
@@ -123,6 +133,7 @@ _docker dir="": _docker_build
             -e WORKSPACE=$WORKSPACE \
             -v {{ROOT}}:$WORKSPACE \
             -v $HOME/.ssh:/root/.ssh \
+            -v deno:/root/.deno \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -w $WORKSPACE \
             {{DOCKER_IMAGE_PREFIX}}cloud:{{DOCKER_TAG}} bash || true
