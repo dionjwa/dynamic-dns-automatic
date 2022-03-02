@@ -10,8 +10,28 @@ Serve all your services/websites:
  - with certificates automatically generated and updated
  - dynamically add services, routing/certificates automated
 
-[![](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggTFJcbiAgbmdpbnhcbiAgY2VydGJvdFxuICBjb25zdWxcbiAgY29uc3VsLXRlbXBsYXRlXG4gIGRvbWFpbnJlZ2lzdGVyW1tETlMgbXkuZG9tYWluLmlvXV1cbiAgc2VydmljZShbc2VydmljZSBmb3IgbXkuZG9tYWluLmlvXSlcbiAgc3ViZ3JhcGggXCJSZW1vdGUgaW5zdGFuY2UgXCJcbiAgICBzZXJ2aWNlIC0tPiB8cmVnaXN0ZXIgc2VydmljZSBlbmRwb250fCBjb25zdWxcbiAgICBjb25zdWwgLS0-IHx1cGRhdGVzfCBjb25zdWwtdGVtcGxhdGVcbiAgICBjb25zdWwtdGVtcGxhdGUgLS0-IHxnZXQgaHR0cHMgY2VydHN8IGNlcnRib3RcbiAgICBjb25zdWwtdGVtcGxhdGUgLS0-IHx1cGRhdGVzIG15LmRvbWFpbi5pbyByb3V0ZXwgbmdpbnhcbiAgICBkeW5hbWljLWRucy11cGRhdGVyXG4gICAgbmdpbnggLS0-IHxwcm94eSBob3N0Om15LmRvbWFpbi5pb3wgc2VydmljZVxuICBlbmRcbiAgZHluYW1pYy1kbnMtdXBkYXRlciAtLT4gfCBVcGRhdGVzIG15LmRvbWFpbi5pbyAtPiBwdWJsaWMgSVAgfGRvbWFpbnJlZ2lzdGVyXG4gIGJyb3dzZXIgLS0-IHxteS5kb21haW4uaW8vaW5kZXguaHRtbHwgZG9tYWlucmVnaXN0ZXJcbiAgZG9tYWlucmVnaXN0ZXIgLS0-IHxteS5kb21haW4uaW8vaW5kZXguaHRtbHwgbmdpbnhcbiAgXG5cdFx0IiwibWVybWFpZCI6eyJ0aGVtZSI6ImRlZmF1bHQifSwidXBkYXRlRWRpdG9yIjpmYWxzZSwiYXV0b1N5bmMiOnRydWUsInVwZGF0ZURpYWdyYW0iOnRydWV9)](https://mermaid-js.github.io/mermaid-live-editor/edit/#eyJjb2RlIjoiZ3JhcGggTFJcbiAgbmdpbnhcbiAgY2VydGJvdFxuICBjb25zdWxcbiAgY29uc3VsLXRlbXBsYXRlXG4gIGRvbWFpbnJlZ2lzdGVyW1tETlMgbXkuZG9tYWluLmlvXV1cbiAgc2VydmljZShbc2VydmljZSBmb3IgbXkuZG9tYWluLmlvXSlcbiAgc3ViZ3JhcGggXCJSZW1vdGUgaW5zdGFuY2UgXCJcbiAgICBzZXJ2aWNlIC0tPiB8cmVnaXN0ZXIgc2VydmljZSBlbmRwb250fCBjb25zdWxcbiAgICBjb25zdWwgLS0-IHx1cGRhdGVzfCBjb25zdWwtdGVtcGxhdGVcbiAgICBjb25zdWwtdGVtcGxhdGUgLS0-IHxnZXQgaHR0cHMgY2VydHN8IGNlcnRib3RcbiAgICBjb25zdWwtdGVtcGxhdGUgLS0-IHx1cGRhdGVzIG15LmRvbWFpbi5pbyByb3V0ZXwgbmdpbnhcbiAgICBkeW5hbWljLWRucy11cGRhdGVyXG4gICAgbmdpbnggLS0-IHxwcm94eSBob3N0Om15LmRvbWFpbi5pb3wgc2VydmljZVxuICBlbmRcbiAgZHluYW1pYy1kbnMtdXBkYXRlciAtLT4gfCBVcGRhdGVzIG15LmRvbWFpbi5pbyAtPiBwdWJsaWMgSVAgfGRvbWFpbnJlZ2lzdGVyXG4gIGJyb3dzZXIgLS0-IHxteS5kb21haW4uaW8vaW5kZXguaHRtbHwgZG9tYWlucmVnaXN0ZXJcbiAgZG9tYWlucmVnaXN0ZXIgLS0-IHxteS5kb21haW4uaW8vaW5kZXguaHRtbHwgbmdpbnhcbiAgXG5cdFx0IiwibWVybWFpZCI6IntcbiAgXCJ0aGVtZVwiOiBcImRlZmF1bHRcIlxufSIsInVwZGF0ZUVkaXRvciI6ZmFsc2UsImF1dG9TeW5jIjp0cnVlLCJ1cGRhdGVEaWFncmFtIjp0cnVlfQ)
 
+```mermaid
+graph LR
+  nginx
+  certbot
+  consul
+  consul-template
+  domainregister[[DNS my.domain.io]]
+  service([service for my.domain.io])
+  subgraph "Remote instance "
+    service --> |register service endpont| consul
+    consul --> |updates| consul-template
+    consul-template --> |get https certs| certbot
+    consul-template --> |updates my.domain.io route| nginx
+    consul-template --> |refresh certs| consul-template
+    dynamic-dns-updater
+    nginx --> |proxy host:my.domain.io| service
+  end
+  dynamic-dns-updater --> | Updates my.domain.io -> public IP |domainregister
+  browser --> |my.domain.io/index.html| domainregister
+  domainregister --> |my.domain.io/index.html| nginx
+```
 
 ## Tasks
 
