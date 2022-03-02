@@ -24,7 +24,7 @@ graph LR
     consul --> |updates| consul-template
     consul-template --> |get https certs| certbot
     consul-template --> |updates my.domain.io route| nginx
-    consul-template --> |refresh certs| consul-template
+    refresh-certificates --> |weekly refresh certs| consul-template
     dynamic-dns-updater
     nginx --> |proxy host:my.domain.io| service
   end
