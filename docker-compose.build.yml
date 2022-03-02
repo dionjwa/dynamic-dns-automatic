@@ -11,6 +11,11 @@ services:
     build:
       context: ./consul-template
 
+  refresh-certificates:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul-template:${DOCKER_TAG:-cache}
+    build:
+      context: ./consul-template
+
   dynamic-dns-updater:
     image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-updater:${DOCKER_TAG:-cache}
     build:

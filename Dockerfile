@@ -11,6 +11,15 @@ RUN apk --no-cache --update add \
     ncurses \
     openssh-client
 
+# docker buildx for multi-architecture builds https://github.com/docker/buildx
+RUN VERSION=0.7.1 ; \
+    SHA256SUM=22fcb78c66905bf6ddf198118aaa9838b0349a25347606264be17e4276d6d5fc ; \
+    curl -L -O https://github.com/docker/buildx/releases/download/v$VERSION/buildx-v$VERSION.linux-amd64 && \
+    (echo "$SHA256SUM  buildx-v$VERSION.linux-amd64" | sha256sum  -c) && \
+    mkdir -p ~/.docker/cli-plugins && \
+    mv buildx-v$VERSION.linux-amd64 ~/.docker/cli-plugins/docker-buildx && \
+    chmod a+x ~/.docker/cli-plugins/docker-buildx
+
 # sd is better than sed
 RUN apk add sd --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
 

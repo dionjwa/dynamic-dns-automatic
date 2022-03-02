@@ -1,7 +1,7 @@
 
 datacenter = "local"
 data_dir = "/opt/consul"
-encrypt = "VHItfpscoN5CQaJhoTZp9VhAWQc6MCARUZMikyGOjGM="
+encrypt = "xGeSiJgdRso2tIhV7IGchIQK2hyyvNKP0QBUI5GbQR4="
 ca_file = "/etc/consul.d/server/certs/consul-agent-ca.pem"
 cert_file = "/etc/consul.d/server/certs/local-server-consul-0.pem"
 key_file = "/etc/consul.d/server/certs/local-server-consul-0-key.pem"

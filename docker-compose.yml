@@ -1,5 +1,6 @@
 # Simple consul server + client for a single instance
-version: "3.7"
+# version: "3.7"
+version: "2.4"
 services:
 
   # There is no need for a client if services are all on the same server: https://github.com/hashicorp/consul/issues/7657
@@ -12,6 +13,8 @@ services:
       - consul-server:/opt/consul
     network_mode: host
     command: "agent -config-dir /etc/consul.d -bootstrap-expect=1 -bind=127.0.0.1"
+    logging:
+      driver: ${LOGGING_CONSUL:-local}
 
   # update nginx config from consul
   consul-template:
@@ -21,12 +24,31 @@ services:
     environment:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL}
     volumes:
-      # Docker daemon mounted to exec into nginx container
+      # Docker daemon mounted to exec into nginx container (reload etc)
       - /var/run/docker.sock:/var/run/docker.sock
       - nginx:/etc/nginx/conf.d
       - certbot-conf:/etc/nginx/ssl:ro
     network_mode: host
-    command: "consul-template -log-level debug -config=/etc/consul-template/config/consul-template-config.hcl"
+    logging:
+      driver: ${LOGGING_CONSUL_TEMPLATE:-local}
+
+  # update nginx config from consul
+  refresh-certificates:
+    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul-template:${DOCKER_TAG:-cache}
+    container_name: dynamic-dns-refresh-certificates
+    restart: always
+    environment:
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+    volumes:
+      # Docker daemon mounted to exec into nginx container (reload etc)
+      - /var/run/docker.sock:/var/run/docker.sock
+      - nginx:/etc/nginx/conf.d
+      - certbot-conf:/etc/nginx/ssl:ro
+    network_mode: host
+    command: crond -f -l 8
+    logging:
+      driver: ${LOGGING_REFRESH_CERTIFICATES:-local}
+
 
   nginx:
     image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-nginx:${DOCKER_TAG:-cache}
@@ -37,6 +59,8 @@ services:
       - nginx:/etc/nginx/conf.d
       - certbot-www:/var/www/certbot/:ro
       - certbot-conf:/etc/nginx/ssl/:ro
+    logging:
+      driver: ${LOGGING_NGINX:-local}
 
   certbot:
     image: certbot/certbot:latest
@@ -46,6 +70,8 @@ services:
     volumes:
       - certbot-www:/var/www/certbot/:rw
       - certbot-conf:/etc/letsencrypt/:rw
+    logging:
+      driver: ${LOGGING_CERTBOT:-local}
 
   # https://hub.docker.com/r/qmcgaw/ddns-updater
   # Updates cloud DNS entries to point to the public IP of the host
@@ -55,13 +81,13 @@ services:
     restart: always
     # This is not ideal, running as root, but nothing else worked: https://github.com/qdm12/ddns-updater/issues/239
     user: "0"
+    logging:
+      driver: ${LOGGING_DYNAMIC_DNS_UPDATER:-local}
 
 volumes:
   consul-server:
   nginx:
   certbot-www:
-    external:
       name: certbot-www
   certbot-conf:
-    external:
       name: certbot-conf

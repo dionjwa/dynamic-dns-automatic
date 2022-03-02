@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo -e "👀 REFRESH CERTIFICATES $(date)..."
+just /etc/consul-template/refresh-certificates
+echo -e "...done with REFRESH CERTIFICATES $(date)"

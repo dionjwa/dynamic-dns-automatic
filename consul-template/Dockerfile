@@ -42,3 +42,6 @@ COPY config /etc/consul-template/config
 WORKDIR /etc/consul-template
 # This has all our commands
 COPY justfile ./
+COPY refresh-certificates  /etc/periodic/15min/refresh-certificates
+
+CMD consul-template -log-level debug -config=/etc/consul-template/config/consul-template-config.hcl
