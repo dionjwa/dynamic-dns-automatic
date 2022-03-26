@@ -19,7 +19,7 @@ check-and-refresh:
 
     # Load the fresh list of domains from consul, and create certs if not already present
     # For automatic refreshing, use 'just refresh-certificates' instead of 'just check-and-refresh'
-    for i in $(cat /etc/nginx/conf.d/load-balancer.certbot.conf | rg server_name | sd 'server_name (.*);\n' '$1'); do
+    for i in $(cat /etc/nginx/conf.d/load-balancer.certbot.conf | rg server_name | sort -u | sd 'server_name (.*);\n' '$1'); do
         # Does the certificate already exist? If not, we MUST generate it now
         if [ ! -f /etc/nginx/ssl/live/$i/fullchain.pem ]; then
             echo "Certificate does NOT exist: $i"
@@ -41,7 +41,7 @@ refresh-certificates:
 
     # Load the fresh list of domains from consul, and create certs if not already present
     # For automatic refreshing, use 'just refresh' instead of 'just check-and-refresh'
-    for i in $(cat /etc/nginx/conf.d/load-balancer.certbot.conf | rg server_name | sd 'server_name (.*);\n' '$1'); do
+    for i in $(cat /etc/nginx/conf.d/load-balancer.certbot.conf | rg server_name | sort -u | sd 'server_name (.*);\n' '$1'); do
         echo "Refreshing certificates for: $i"
         just get-certificates $i
     done
