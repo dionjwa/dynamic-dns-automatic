@@ -39,9 +39,13 @@ _help:
     fi
 
 # Develop: this story is not very well developed, because you need DNS
-dev args="consul consul-template refresh-certificates nginx": build
+dev +args="consul-template consul refresh-certificates nginx": build
     @echo "Full development is limited, and many pieces rely on actual DNS updates. Just building and running locally"
     docker-compose up {{args}}
+
+# docker-compose commands but with env vars from the justfile
+dc +args="":
+    docker-compose {{args}}
 
 # Open the TARGET_HOST consul UI in a browser, must be on the same internal network as the server
 console:

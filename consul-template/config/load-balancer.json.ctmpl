@@ -1,0 +1,2 @@
+{{ range services }} {{$name := .Name}} {{$service := service .Name}}{{range $service}}
+{"name": "{{$name}}","address": "{{.Address}}","port": {{.Port}},"tags": {{.Tags |  toJSON}},"meta": {{.ServiceMeta |  toJSON}}{{end}}}{{end}}

@@ -74,7 +74,7 @@ graph LR
     }
 }
     ```
-  - `curl --request PUT --data '{"id":"my_domain_com","name":"my_domain_com","port":3010,"check":{"name":"HTTP API on port 3010","interval": "2s","http":"http://localhost:3010"}}' localhost:8500/v1/agent/service/register`
+  - `curl --request PUT --data '{"id":"{{domain}}/{{path}}","tags":["nginx-route"],"meta":{"path":"{{path}}","domain":"{{domain}}"},"name":"my_domain_com","port":3010,"check":{"name":"HTTP API on port 3010","interval": "2s","http":"http://localhost:3010"}}' localhost:8500/v1/agent/service/register`
     - https://www.consul.io/docs/discovery/services
     - Make sure that `"interval": "2s"` is less than `consul-template/config/consul-template-config.hcl:` `min = "3s"`
       - consul doesn't seem to get the timing right on rendering, the service must be registered as healthy *before* the templating process starts. This is not how consul is advertised to work (re-renders on any updates) and is possibly due to timing of the template render.
@@ -145,6 +145,44 @@ docker exec -ti dynamic-dns-nginx cat /etc/nginx/conf.d/load-balancer.https.conf
 #### Run the templater manually
 
 docker exec -ti dynamic-dns-consul-template consul-template -once -log-level debug -config=/etc/consul-template/config/consul-template-config.hcl
+
+## Development
+
+Run all services (except `consul-template`) daemonzied:
+
+```
+just dev -d consul refresh-certificates nginx
+```
+
+Then start some services and register them:
+
+```
+docker run -d --rm -e PORT=3000 -p 3000:3000 ealen/echo-server
+```
+```
+curl --request PUT --data '{"id":"localhost","tags":["nginx-route"],"meta":{"path":"","domain":"localhost"},"name":"localhost","port":3000,"check":{"name":"HTTP API on port 3000","interval": "2s","http":"http://host.docker.internal:3000"}}' localhost:8500/v1/agent/service/register
+```
+
+```
+docker run -d --rm -e PORT=3001 -p 3001:3001 ealen/echo-server
+```
+```
+curl --request PUT --data '{"id":"localhost2","tags":["nginx-route"],"meta":{"path":"/api","domain":"localhost"},"name":"localhost2","port":3001,"check":{"name":"HTTP API on port 3001","interval": "2s","http":"http://host.docker.internal:3001"}}' localhost:8500/v1/agent/service/register
+```
+
+Then run the `consul-template` once command, and debug results:
+
+```
+just dc run consul-template consul-template -once -log-level debug -config=/etc/consul-template/config/consul-template-config.hcl
+
+```
+
+Look at the output, or the `load-balancer.json` output.
+
+```
+docker-compose exec -ti nginx cat /etc/nginx/conf.d/load-balancer.https.conf
+```
+
 
 ## Reference blogs
 

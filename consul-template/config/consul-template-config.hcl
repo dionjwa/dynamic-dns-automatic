@@ -7,22 +7,12 @@ consul {
     backoff  = "250ms"
   }
 }
-// Render the https config first but DO NOT yet copy it into the nginx
-// directory, the certs might not yet exist, then nginx will fail and
-// break our current timeline. we will copy it manually AFTER we have
-// checked the certificates exist
-template {
-  source      = "/etc/consul-template/config/load-balancer.https.conf.ctmpl"
-  // This spot is temporary until we validate we have the certs
-  // In other words, the nginx config will be rendered but not copied
-  // until certs are available, then the "just check-and-refresh" below
-  // will copy it into place
-  destination = "/etc/consul-template/load-balancer.https.conf"
-}
-// This template can immediately be copied into the nginx directory
+
+// It's very difficult to get the right templates with nested services
+// so just generate a list of JSON objects and process them with a script
 template { // https://github.com/hashicorp/consul-template/blob/master/docs/configuration.md#templates
-  source      = "/etc/consul-template/config/load-balancer.certbot.conf.ctmpl"
-  destination = "/etc/nginx/conf.d/load-balancer.certbot.conf"
+  source      = "/etc/consul-template/config/load-balancer.json.ctmpl"
+  destination = "/etc/consul-template/config/load-balancer.json"
   perms       = 0600
   command     = "just check-and-refresh"
   wait {

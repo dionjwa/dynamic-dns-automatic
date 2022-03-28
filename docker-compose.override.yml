@@ -1,0 +1,16 @@
+# Simple consul server + client for a single instance
+# version: "3.7"
+version: "2.4"
+services:
+
+  consul:
+    ports:
+      # Docker daemon mounted to exec into nginx container (reload etc)
+      - 8500:8500
+    network_mode: bridge
+
+
+  consul-template:
+    volumes:
+      # Docker daemon mounted to exec into nginx container (reload etc)
+      - ./consul-template:/etc/consul-template
