@@ -85,9 +85,13 @@ services:
       driver: ${LOGGING_DYNAMIC_DNS_UPDATER:-local}
 
 volumes:
-  consul-server:
   nginx:
+  consul-server:
+    name: consul-server
+    external: true
   certbot-www:
-      name: certbot-www
+    name: certbot-www
+    external: true
   certbot-conf:
-      name: certbot-conf
+    name: certbot-conf
+    external: true

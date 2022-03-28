@@ -57,6 +57,7 @@ deploy: _docker_registry_authenticate build push _upload_to_remote_compose_confi
     @# Workaround for https://github.com/qdm12/ddns-updater/issues/239
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && mkdir -p dynamic-dns-updater/data && sudo chown -R 1000 dynamic-dns-updater/data && chmod 700 dynamic-dns-updater/data && touch dynamic-dns-updater/data/config.json && chmod 400 dynamic-dns-updater/data/config.json'
     @# Ensure external volumes exist
+    ssh {{TARGET_USER}}@{{TARGET_HOST}} 'if [ "$(docker volume inspect consul-server  2>/dev/null)" = "[]" ]; then docker volume create consul-server; fi'
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'if [ "$(docker volume inspect certbot-www  2>/dev/null)" = "[]" ]; then docker volume create certbot-www; fi'
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'if [ "$(docker volume inspect certbot-conf  2>/dev/null)" = "[]" ]; then docker volume create certbot-conf; fi'
     @# Start up the stack
