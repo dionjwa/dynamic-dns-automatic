@@ -219,6 +219,13 @@ const Services :ServiceBlob[] = loadBalancerJsonList.split("\n")
 
 console.log('Services', Services);
 
+console.log('🐸 1: write certbot nginx config, so the certbot can validate certificate domains.');
+// These files are shared via a volume with the nginx container
+await Deno.writeTextFile("/etc/nginx/conf.d/load-balancer.certbot.conf", generateNginxCertbotConfig(Services));
+console.log('🐸 2: restart nginx, so the certbot can validate certificate domains.');
+await reloadNginx();
+
+console.log('🐸 3: refresh certificates (maybe domains altered), certbot will validate certificate domains.');
 for (const domain of getDomains(Services)) {
   let response = await exec(`just get-certificates ${domain}`, {
     output: OutputMode.StdOut,
@@ -229,6 +236,7 @@ for (const domain of getDomains(Services)) {
   }
 }
 // These files are shared via a volume with the nginx container
-await Deno.writeTextFile("/etc/nginx/conf.d/load-balancer.certbot.conf", generateNginxCertbotConfig(Services));
+console.log('🐸 4: write the entire nginx config, services with their paths, connected to the domains backed by certbot certificates.');
 await Deno.writeTextFile("/etc/nginx/conf.d/load-balancer.https.conf", generateNginxRoutingConfig(Services));
+console.log('🐸 5: restart nginx: we are good to go 👍');
 await reloadNginx();
