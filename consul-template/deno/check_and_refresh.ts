@@ -8,6 +8,7 @@
  * 4. Reload nginx
  */
 import { exec, OutputMode } from "https://deno.land/x/exec@0.0.5/mod.ts";
+import { existsSync } from "https://deno.land/std@0.132.0/fs/mod.ts";
 
 type ServiceBlob = {
   name: string;
@@ -203,7 +204,11 @@ server {
   return config;
 }
 
-const loadBalancerJsonList :string =  await Deno.readTextFile("./config/load-balancer.json")
+if (!existsSync("/tmp/load-balancer.json")) {
+  console.error("/tmp/load-balancer.json does not exist");
+  Deno.exit(0);
+}
+const loadBalancerJsonList :string =  await Deno.readTextFile("/tmp/load-balancer.json")
 
 const Services :ServiceBlob[] = loadBalancerJsonList.split("\n")
   .map(line => line.trim())
@@ -223,6 +228,7 @@ for (const domain of getDomains(Services)) {
     console.error(`just get-certificates ${domain} response=${JSON.stringify(response)}`);
   }
 }
+// These files are shared via a volume with the nginx container
 await Deno.writeTextFile("/etc/nginx/conf.d/load-balancer.certbot.conf", generateNginxCertbotConfig(Services));
 await Deno.writeTextFile("/etc/nginx/conf.d/load-balancer.https.conf", generateNginxRoutingConfig(Services));
 await reloadNginx();

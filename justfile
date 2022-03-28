@@ -51,8 +51,9 @@ dc +args="":
 console:
     open http://{{TARGET_HOST}}:8500/ui/local/services
 
+# build push
 # Deploy consul docker-compose stack to TARGET_HOST. Also requires CERTBOT_EMAIL TARGET_USER GITHUB_TOKEN
-deploy: _docker_registry_authenticate build push _upload_to_remote_compose_config && _delete_local_remote_compose_config
+deploy: _docker_registry_authenticate  _upload_to_remote_compose_config && _delete_local_remote_compose_config
     ssh -o ConnectTimeout=10 {{TARGET_USER}}@{{TARGET_HOST}} 'echo {{GITHUB_TOKEN}} | docker login ghcr.io -u USERNAME --password-stdin'
     @# Workaround for https://github.com/qdm12/ddns-updater/issues/239
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && mkdir -p dynamic-dns-updater/data && sudo chown -R 1000 dynamic-dns-updater/data && chmod 700 dynamic-dns-updater/data && touch dynamic-dns-updater/data/config.json && chmod 400 dynamic-dns-updater/data/config.json'
@@ -60,7 +61,7 @@ deploy: _docker_registry_authenticate build push _upload_to_remote_compose_confi
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'if [ "$(docker volume inspect certbot-www  2>/dev/null)" = "[]" ]; then docker volume create certbot-www; fi'
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'if [ "$(docker volume inspect certbot-conf  2>/dev/null)" = "[]" ]; then docker volume create certbot-conf; fi'
     @# Start up the stack
-    ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose pull && docker-compose up --remove-orphans -d'
+    ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose pull && docker-compose down && docker-compose up --remove-orphans -d'
 
 _upload_to_remote_compose_config:
     docker-compose config > docker-compose.remote.yml

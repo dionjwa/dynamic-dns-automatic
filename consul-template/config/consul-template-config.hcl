@@ -12,7 +12,7 @@ consul {
 // so just generate a list of JSON objects and process them with a script
 template { // https://github.com/hashicorp/consul-template/blob/master/docs/configuration.md#templates
   source      = "/etc/consul-template/config/load-balancer.json.ctmpl"
-  destination = "/etc/consul-template/config/load-balancer.json"
+  destination = "/tmp/load-balancer.json"
   perms       = 0600
   command     = "just check-and-refresh"
   wait {
