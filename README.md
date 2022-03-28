@@ -25,10 +25,10 @@ graph LR
     consul-template --> |get https certs| certbot
     consul-template --> |updates my.domain.io route| nginx
     refresh-certificates --> |weekly refresh certs| consul-template
-    dynamic-dns-updater
+    updater
     nginx --> |proxy host:my.domain.io| service
   end
-  dynamic-dns-updater --> | Updates my.domain.io -> public IP |domainregister
+  updater --> | Updates my.domain.io -> public IP |domainregister
   browser --> |my.domain.io/index.html| domainregister
   domainregister --> |my.domain.io/index.html| nginx
 ```

@@ -75,7 +75,7 @@ services:
 
   # https://hub.docker.com/r/qmcgaw/ddns-updater
   # Updates cloud DNS entries to point to the public IP of the host
-  dynamic-dns-updater:
+  updater:
     image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-updater:${DOCKER_TAG:-cache}
     container_name: dynamic-dns-updater
     restart: always
