@@ -63,7 +63,7 @@ deploy: _docker_registry_authenticate build push _upload_to_remote_compose_confi
     ssh {{TARGET_USER}}@{{TARGET_HOST}} 'cd deployments/consul && docker-compose pull && docker-compose down && docker-compose up --remove-orphans -d'
 
 _upload_to_remote_compose_config:
-    docker-compose config > docker-compose.remote.yml
+    docker-compose -f docker-compose.yml config > docker-compose.remote.yml
     ssh -o 'StrictHostKeyChecking accept-new' {{TARGET_USER}}@{{TARGET_HOST}} 'mkdir -p deployments/consul'
     scp docker-compose.remote.yml {{TARGET_USER}}@{{TARGET_HOST}}:deployments/consul/docker-compose.yml
 
@@ -118,36 +118,6 @@ push: build
         DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml push;
     fi
 
-# _build_and_push:
-#     #!/usr/bin/env bash
-#     set -euo pipefail
-#     just consul/setup
-#     # buildx uses different a different command structure ugh
-#     if [ "${DOCKER_BUILDKIT}" = "1" ]; then
-#         echo -e " 🏗️ buildkit enabled!"
-#         # Guide: https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408
-#         # buildkit is required for multi-architecture builds
-#         # buildkit ignores custom docker-compose.yml set in DOCKER_COMPOSE_ARGS, the compose yaml parsing is not the same
-#         # as non-buildkit builds and errors abound
-#         # buildx pushes to the buildkit registry to requires authentication
-#         # I saw this 👇 here 👉 https://github.com/marthoc/docker-deconz/blob/master/.travis.yml and https://medium.com/@artur.klauser/building-multi-architecture-docker-images-with-buildx-27d80f7e2408
-#         # echo -e " 🏗️ docker run --rm --privileged --platform linux/arm64/v8 multiarch/qemu-user-static --reset -p yes"
-#         # docker run --rm --privileged --platform linux/arm64/v8 multiarch/qemu-user-static --reset -p yes
-#         if [ "$(docker buildx ls | grep multi-builder)" = "" ]; then
-#             echo -e " 🏗️ buildkit builder 'multi-builder' does not exist, creating"
-#             docker buildx create --name multi-builder
-#         else
-#             echo -e " 🏗️ buildkit builder already exists"
-#         fi
-#         docker buildx use multi-builder
-#         COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker buildx bake --push --set '*.platform=linux/arm64,linux/amd64' -f docker-compose.yml -f docker-compose.build.yml
-#         docker buildx use default
-#     else
-#         echo -e "🚪 {{bold}}DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml build {{normal}} 🚪 ";
-#         DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml build;
-#         DOCKER_TAG=$DOCKER_TAG DOCKER_REGISTRY=$DOCKER_REGISTRY DOCKER_IMAGE_PREFIX=$DOCKER_IMAGE_PREFIX docker-compose -f docker-compose.yml -f docker-compose.build.yml push;
-#     fi
-
 _docker_registry_authenticate:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -161,9 +131,6 @@ _docker_registry_authenticate:
         echo $GITHUB_TOKEN | docker login -u USERNAME --password-stdin ghcr.io;
         echo "🤖 ✅ docker registry authenticated";
     fi
-
-# echo -e "🚪 <ci/> {{bold}}echo GITHUB_TOKEN | docker login --username USERNAME --password-stdin ghcr.io{{normal}} 🚪"
-
 
 # Build and run the ci/cloud image, used for building, publishing, and deployments
 _docker dir="": _docker_build
