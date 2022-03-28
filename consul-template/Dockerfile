@@ -99,6 +99,7 @@ RUN VERSION=2.3.4 ; \
 # Local files
 # Required to communicate with consul
 COPY config /etc/consul-template/config
+COPY deno /etc/consul-template/deno
 
 WORKDIR /etc/consul-template
 # This has all our commands
