@@ -24,7 +24,7 @@ refresh-certificates:
         just get-certificates $i
     done
 
-    # Now restart nginx with all certifactes and updated routing from consul
+    # Now restart nginx with all certificates and updated routing from consul
     just nginx-reload
 
 # certbot certonly --webroot --webroot-path /var/www/certbot/ --non-interactive --agree-tos --email dion@metapage.io -d $i

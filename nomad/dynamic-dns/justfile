@@ -1,0 +1,14 @@
+# Set up a reverse proxy to route external requests to local applications
+set shell       := ["bash", "-c"]
+set dotenv-load := true
+
+@_help:
+    just --list --unsorted --list-heading $'🏡 Deploy via nomad https://github.com/qdm12/ddns-updater:\n\n'
+    echo -e ""
+    echo -e "    👉 Only required for hosts with Dynamic DNS e.g. home servers"
+
+# Deploy qdm12/ddns-updater image to nomad to automatically update DNS entries. See github repo for docs.
+@deploy:
+    if [ ! -f config.json ]; then echo "config.json not found"; exit 1; fi
+    # The config.json needs special munging to get it into the right format for the nomad job
+    nomad job run -var="config=`jq -c . < config.json | sd '"' '\\"'`" nomad.hcl

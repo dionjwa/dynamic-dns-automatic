@@ -1,3 +1,4 @@
-/.env
 .tmp
+.DS_Store
+/.env
 /docker-compose.remote.yml
