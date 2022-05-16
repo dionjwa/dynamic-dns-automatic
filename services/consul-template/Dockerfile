@@ -68,34 +68,6 @@ RUN echo -e '#!/bin/bash\njust "$@"' > /usr/bin/j && \
 ###############################################################################
 
 ###############################################################################
-# docker-compose
-RUN VERSION=2.3.4 ; \
-    apk add --no-cache \
-        docker \
-        py-pip \
-        python3-dev \
-        libffi-dev \
-        openssl-dev \
-        gcc \
-        libc-dev \
-        rust \
-        cargo \
-        make && \
-    curl -L "https://github.com/docker/compose/releases/download/v$VERSION/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
-    chmod +x /usr/local/bin/docker-compose && \
-    apk del \
-        py-pip \
-        python3-dev \
-        libffi-dev \
-        openssl-dev \
-        gcc \
-        libc-dev \
-        rust \
-        cargo \
-        make
-###############################################################################
-
-###############################################################################
 # Local files
 # Required to communicate with consul
 COPY config /etc/consul-template/config

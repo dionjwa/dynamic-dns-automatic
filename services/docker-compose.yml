@@ -3,19 +3,6 @@
 version: "2.4"
 services:
 
-  # There is no need for a client if services are all on the same server: https://github.com/hashicorp/consul/issues/7657
-  # services register with consul, triggering an update to nginx
-  consul:
-    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul:${DOCKER_TAG:-cache}
-    container_name: dynamic-dns-consul-server
-    restart: always
-    volumes:
-      - consul-server:/opt/consul
-    network_mode: host
-    command: "agent -config-dir /etc/consul.d -bootstrap-expect=1 -bind=127.0.0.1"
-    logging:
-      driver: ${LOGGING_CONSUL:-local}
-
   # update nginx config from consul
   consul-template:
     image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-consul-template:${DOCKER_TAG:-cache}
@@ -49,7 +36,6 @@ services:
     logging:
       driver: ${LOGGING_REFRESH_CERTIFICATES:-local}
 
-
   nginx:
     image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-nginx:${DOCKER_TAG:-cache}
     container_name: dynamic-dns-nginx
@@ -73,22 +59,8 @@ services:
     logging:
       driver: ${LOGGING_CERTBOT:-local}
 
-  # https://hub.docker.com/r/qmcgaw/ddns-updater
-  # Updates cloud DNS entries to point to the public IP of the host
-  updater:
-    image: ${DOCKER_REGISTRY:-}${DOCKER_IMAGE_PREFIX:-}dynamic-dns-updater:${DOCKER_TAG:-cache}
-    container_name: dynamic-dns-updater
-    restart: always
-    # This is not ideal, running as root, but nothing else worked: https://github.com/qdm12/ddns-updater/issues/239
-    user: "0"
-    logging:
-      driver: ${LOGGING_DYNAMIC_DNS_UPDATER:-local}
-
 volumes:
   nginx:
-  consul-server:
-    name: consul-server
-    external: true
   certbot-www:
     name: certbot-www
     external: true
